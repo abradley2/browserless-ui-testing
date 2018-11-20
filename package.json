@@ -1,0 +1,32 @@
+{
+  "name": "gopher-beer-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tape": "tape ./src/**/*.test.js",
+    "test": "eslint ./src/**/*.js && tape ./src/**/*.test.js",
+    "start": "parcel server ./src/index.html"
+  },
+  "author": "Tony Bradley",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^5.9.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "parcel-bundler": "^1.10.3",
+    "tape": "^4.9.1"
+  },
+  "dependencies": {
+    "@cycle/dom": "^22.0.0",
+    "@cycle/http": "^15.0.0",
+    "@cycle/run": "^5.1.0",
+    "fluture": "^10.2.0",
+    "sanctuary": "^0.15.0",
+    "sanctuary-def": "^0.18.1",
+    "xstream": "^11.7.0"
+  }
+}

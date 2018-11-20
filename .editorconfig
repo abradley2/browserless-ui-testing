@@ -1,0 +1,20 @@
+root = true
+
+[*.js,*.json]
+indent_style = space
+indent_size = 2
+
+[elm.json]
+indent_size = 4
+indent_style = space
+
+[*.elm]
+indent_style = space
+indent_size = 4
+
+[*.yml]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab
