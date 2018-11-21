@@ -21,13 +21,13 @@ function mockDOMDriver () {
 test('app test', { timeout: 1000 }, function (t) {
   t.plan(1)
 
-  const result = app({ DOM: mockDOMDriver() })
+  app({ DOM: mockDOMDriver() })
 
-  result.DOM
-    .take(4)
-    .subscribe(function (e) {
-      console.log('got event', e)
-    })
+  // result.DOM
+  //   .take(4)
+  //   .subscribe(function (e) {
+  //     console.log('got event', e)
+  //   })
 
   setTimeout(function () {
     t.ok(app)
