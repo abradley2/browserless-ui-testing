@@ -10,6 +10,10 @@ module.exports = function app (sources) {
     })
     .startWith('')
 
+  name$.subscribe(function (e) {
+    console.log('perform side effect for this evevnt: ', e)
+  })
+
   const vdom$ = name$.map(
     name =>
       div([
