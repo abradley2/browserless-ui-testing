@@ -1,10 +1,13 @@
 const test = require('tape')
 const app = require('./app')
+const { run } = require('@cycle/run')
 const xs = require('xstream').default
 
 const inputEvent = value => ({ target: { value } })
 
-function mockDOMDriver () {
+const mockDOMDriver = (listener) => (vdom$) => {
+  vdom$.subscribe(listener)
+
   return {
     select: function select (selector) {
       return {
@@ -21,13 +24,11 @@ function mockDOMDriver () {
 test('app test', { timeout: 1000 }, function (t) {
   t.plan(1)
 
-  app({ DOM: mockDOMDriver() })
+  function vdomListener (e) {
+    console.log('GOT VDOM EVVENT', e)
+  }
 
-  // result.DOM
-  //   .take(4)
-  //   .subscribe(function (e) {
-  //     console.log('got event', e)
-  //   })
+  run(app, { DOM: mockDOMDriver(vdomListener) })
 
   setTimeout(function () {
     t.ok(app)
