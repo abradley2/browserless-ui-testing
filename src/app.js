@@ -4,7 +4,10 @@ module.exports = function app (sources) {
   const input$ = sources.DOM.select('.field').events('input')
 
   const name$ = input$
-    .map(ev => ev.target.value)
+    .map(ev => {
+      console.log('GOT EVENT', ev)
+      return ev.target.value
+    })
     .startWith('')
 
   const vdom$ = name$.map(
