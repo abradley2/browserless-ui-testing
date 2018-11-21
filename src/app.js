@@ -3,7 +3,9 @@ const { div, label, input, hr, h1 } = require('@cycle/dom')
 module.exports = function app (sources) {
   const input$ = sources.DOM.select('.field').events('input')
 
-  const name$ = input$.map(ev => ev.target.value).startWith('')
+  const name$ = input$
+    .map(ev => ev.target.value)
+    .startWith('')
 
   const vdom$ = name$.map(
     name =>
