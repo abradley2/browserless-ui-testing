@@ -15,7 +15,6 @@ function onMessage (state, message) {
 
 module.exports = function beerSearch (sources) {
   const routeChange = Symbol('route-change')
-  const messages = xs.never()
 
   const initialState = {
     textFieldValue: 'hello there'
@@ -23,8 +22,8 @@ module.exports = function beerSearch (sources) {
 
   const state$ = xs
     .merge(
-      sources.route.map(v => Object.assign({}, v, { routeChange })),
-      messages,
+      sources.route
+        .map(v => Object.assign({}, v, { routeChange })),
       textField
         .value(sources, '.my-text-field')
         .map(value => ({
@@ -32,25 +31,24 @@ module.exports = function beerSearch (sources) {
           value
         }))
     )
-    .fold((state, message) => {
-      if (message.routeChange) return initialState
-
-      return onMessage(state, message)
-    }, initialState)
+    .fold(onMessage, initialState)
+    .startWith(initialState)
 
   const TextField = textField({
     DOM: sources.DOM,
-    props: state$.map(
-      state => ({
-        value: state.textFieldValue
-      })
-    )
+    props: state$
+      .map(
+        state => ({
+          value: state.textFieldValue
+        })
+      )
   }, '.my-text-field')
 
-  const vdom$ = xs.combine(
-    state$,
-    TextField.DOM
-  )
+  const vdom$ = xs
+    .combine(
+      state$,
+      TextField.DOM
+    )
     .map(
       ([state, textFieldVdom$]) =>
         h.div([

@@ -23,7 +23,18 @@ const pathToRoute = memoizee(function pathToRoute (pathname) {
     }, null)
 })
 
-module.exports = ({ pathname, search }) => function app (sources) {
+function onMessage (state, message) {
+  switch (message.type) {
+    default:
+      return state
+  }
+}
+
+const app = ({ pathname, search }) => function app (sources) {
+  const initialState = {
+    user: null
+  }
+
   const route$ = sources.DOM.select('a[data-link]').events('click')
     .map(e => {
       // if we are in the browser we need to run some side-effects to facilitate routing
@@ -49,8 +60,15 @@ module.exports = ({ pathname, search }) => function app (sources) {
       search
     ))
 
+  const session$ = xs
+    .merge(
+      route$
+    )
+    .fold(onMessage, initialState)
+
   const beerSearchSinks = require('./beer-search')({
     DOM: sources.DOM,
+    session: session$,
     route: route$
       .map(route =>
         Object.assign({}, route, { active: route.name === beerSearchRoute }))
@@ -58,28 +76,39 @@ module.exports = ({ pathname, search }) => function app (sources) {
 
   const homeSinks = require('./home')({
     DOM: sources.DOM,
+    session: session$,
     route: route$
       .map((route) =>
         Object.assign({}, route, { active: route.name === homeRoute }))
   })
 
-  const vdom$ = route$.map(
-    route => {
-      switch (route.name) {
-        case homeRoute:
-          return homeSinks.DOM
-        case beerSearchRoute:
-          return beerSearchSinks.DOM
-        default:
-          return xs.of(
-            h.div([
-              h.h1('page not found')
-            ])
-          )
+  const homeVdom$ = homeSinks.DOM
+  const beerSearchVdom$ = beerSearchSinks.DOM
+
+  const vdom$ = route$
+    .map(
+      route => {
+        switch (route.name) {
+          case homeRoute:
+            return homeVdom$
+          case beerSearchRoute:
+            return beerSearchVdom$
+          default:
+            return xs.of(
+              h.div([
+                h.h1('page not found')
+              ])
+            )
+        }
       }
-    }
-  )
+    )
     .flatten()
 
   return { DOM: vdom$ }
+}
+
+module.exports = {
+  app,
+  homeRoute,
+  beerSearchRoute
 }
