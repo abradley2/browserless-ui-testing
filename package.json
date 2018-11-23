@@ -24,7 +24,10 @@
     "@cycle/dom": "^22.0.0",
     "@cycle/http": "^15.0.0",
     "@cycle/run": "^5.1.0",
+    "aphrodite": "^2.2.3",
     "fluture": "^10.2.0",
+    "memoizee": "^0.4.14",
+    "path-to-regexp": "^2.4.0",
     "sanctuary": "^0.15.0",
     "sanctuary-def": "^0.18.1",
     "xstream": "^11.7.0"

@@ -5,16 +5,20 @@ const xs = require('xstream').default
 
 const inputEvent = value => ({ target: { value } })
 
-const mockDOMDriver = (listener) => (vdom$) => {
+const mockDOMDriver = (listener, events$) => (vdom$) => {
   vdom$.subscribe(listener)
 
   return {
-    select: function select (selector) {
+    select: (selector) => {
       return {
-        events: function events (eventName) {
-          return xs.of(
-            inputEvent('this was mocked')
-          )
+        events: (eventName) => {
+          return events$
+            .filter(
+              e => e.type === `${selector}->${eventName}`
+            )
+            .map(
+              e => e.data
+            )
         }
       }
     }
@@ -24,11 +28,21 @@ const mockDOMDriver = (listener) => (vdom$) => {
 test('app test', { timeout: 1000 }, function (t) {
   t.plan(1)
 
-  function vdomListener (e) {
-    console.log('GOT VDOM EVVENT', e)
+  const vdomListener = {
+    next: function (val) {
+      console.log(JSON.stringify(val, null, 2))
+    }
   }
 
-  run(app, { DOM: mockDOMDriver(vdomListener) })
+  const events = [
+    {
+      type: '.field->input',
+      data: inputEvent('SOME INPUT EVENT')
+    }
+  ]
+  const events$ = xs.of(...events)
+
+  run(app, { DOM: mockDOMDriver(vdomListener, events$) })
 
   setTimeout(function () {
     t.ok(app)
