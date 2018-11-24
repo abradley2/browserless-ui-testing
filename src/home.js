@@ -4,6 +4,10 @@ const { StyleSheet, css } = require('aphrodite')
 const theme = require('./theme')
 
 const classes = StyleSheet.create({
+  container: {
+    marginTop: 48,
+    padding: 16
+  },
   banner: {
     backgroundColor: theme.beerBrown,
     height: 48,
@@ -27,6 +31,15 @@ const classes = StyleSheet.create({
     fontSize: 32,
     margin: '0px 8px',
     transform: 'translateY(10%)'
+  },
+
+  unauthenticated: {
+    display: 'flex',
+    justifyContent: 'center'
+  },
+
+  unauthenticated__loginLink: {
+    fontSize: 24
   }
 })
 
@@ -70,13 +83,26 @@ function banner () {
 
 function loggedIn (state) {
   return h.div([
-    banner()
+    'you are authenticated!'
   ])
 }
 
-function unauthenticated (state) {
-  return h.div([
-    banner()
+function unauthenticated (state, session) {
+  return h.div({
+    attrs: {
+      class: css(
+        classes.unauthenticated
+      )
+    }
+  }, [
+    h.a({
+      attrs: {
+        class: css(
+          classes.unauthenticated__loginLink
+        ),
+        href: session.config.oauthURL
+      }
+    }, 'Login via Untappd')
   ])
 }
 
@@ -93,16 +119,33 @@ module.exports = function home (sources) {
     .fold(onMessage, initialState)
     .startWith(initialState)
 
+  const layout = (body) => h.div([
+    banner(),
+    h.div({
+      attrs: {
+        class: css(
+          classes.container
+        )
+      }
+    }, body)
+  ])
+
   const vdom$ = xs
     .combine(
       state$,
       sources.session
     )
-    .map(([state, session]) =>
-      (session.user
+    .map(([state, session]) => {
+      if (!session.config) {
+        return layout(h.div([]))
+      }
+
+      const body = session.user && session.user.token
         ? loggedIn
         : unauthenticated
-      )(state, session))
+
+      return layout(body(state, session))
+    })
 
   return { DOM: vdom$ }
 }

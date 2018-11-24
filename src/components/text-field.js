@@ -10,16 +10,17 @@ const classes = StyleSheet.create({
 function textField (sources, selector) {
   const props$ = sources.props
 
-  const vdom$ = props$.map(
-    props =>
-      input(selector, {
-        attrs: {
-          className: css(classes.textField),
-          value: props.value,
-          type: 'text'
-        }
-      })
-  )
+  const vdom$ = props$
+    .map(
+      props =>
+        input(selector, {
+          attrs: {
+            class: css(classes.textField),
+            value: props.value,
+            type: 'text'
+          }
+        })
+    )
 
   return { DOM: vdom$ }
 }
