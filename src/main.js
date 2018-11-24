@@ -20,3 +20,14 @@ run(
     COOKIE: makeCOOKIEDriver()
   }
 )
+
+if (window.location.search.includes('code')) {
+  // clear this out after a second
+  setTimeout(() => {
+    window.history.replaceState(
+      null,
+      document.title,
+      '/'
+    )
+  }, 500)
+}

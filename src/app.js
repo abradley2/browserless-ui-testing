@@ -97,20 +97,35 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       search
     ))
 
+  const tokenCookie$ = sources.COOKIE.select('token')
+
   const requests$ = xs
-    .of({
-      url: `${apiURL}config`,
-      category: getConfigRequest
-    },
-    queryParams.code && {
-      url: `${apiURL}token`,
-      category: getTokenRequest,
-      method: 'POST',
-      send: {
-        code: queryParams.code,
-        redirectUrl: `${protocol}//${host}`
-      }
-    })
+    .merge(
+      xs.of({
+        url: `${apiURL}config`,
+        category: getConfigRequest
+      }),
+      queryParams.code
+        ? tokenCookie$.map(
+          token => {
+            console.log('CHECK FOR TOKEN FIRST', token)
+            // if we have a token from the cookie then don't fire off the request
+            return token
+              ? null
+              : {
+                url: `${apiURL}token`,
+                category: getTokenRequest,
+                method: 'POST',
+                send: {
+                  code: queryParams.code,
+                  redirectUrl: `${protocol}//${host}`
+                }
+              }
+          }
+        )
+        : xs.of()
+    )
+    .flatten()
     .filter(v => !!v)
 
   const tokenResponse$ = sources.HTTP.select(getTokenRequest)
@@ -127,7 +142,8 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
   const session$ = xs
     .merge(
       route$,
-      sources.COOKIE.select('token')
+
+      tokenCookie$
         .filter(token => !!token)
         .map(token => {
           return {
@@ -157,10 +173,10 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       }),
       tokenResponse$
         .map(payload => {
-          console.log('SET TOKEN OCOKIE', payload)
           return {
             name: 'token',
-            value: payload.token
+            value: payload.token,
+            expires: 60 * 60 * 24 // expire after a day
           }
         })
     )
