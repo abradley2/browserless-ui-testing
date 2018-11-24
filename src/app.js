@@ -24,18 +24,25 @@ const pathToRoute = memoizee(function pathToRoute (pathname) {
 })
 
 const configResponse = Symbol('configResponse')
-const tokenRecieved = Symbol('tokenRecieved')
+const loadSessionToken = Symbol('loadSessionToken')
+const tokenResponse = Symbol('tokenResponse')
+
+function setToken (state, message) {
+  const currentUser = state.user || {}
+  const updatedUser = Object.assign({}, currentUser, {
+    token: message.token
+  })
+  return Object.assign({}, state, {
+    user: updatedUser
+  })
+}
 
 function onMessage (state, message) {
   switch (message.type) {
-    case tokenRecieved:
-      const currentUser = state.user || {}
-      const updatedUser = Object.assign({}, currentUser, {
-        token: message.token
-      })
-      return Object.assign({}, state, {
-        user: updatedUser
-      })
+    case tokenResponse:
+      return setToken(state, message)
+    case loadSessionToken:
+      return setToken(state, message)
     case configResponse:
       const redirectUrl = encodeURIComponent(message.redirectUrl)
       const config = Object.assign({}, message.config, {
@@ -51,6 +58,14 @@ function onMessage (state, message) {
 
 const app = ({ protocol, host, pathname, search, apiURL }) => function app (sources) {
   const getConfigRequest = Symbol('getConfigRequest')
+  const getTokenRequest = Symbol('getTokenRequest')
+
+  const queryParams = search.substr(1).split('&').reduce((params, pair) => {
+    const [k, v] = pair.split('=')
+    return Object.assign({}, params, {
+      [k]: v
+    })
+  }, {})
 
   const initialState = {
     user: null,
@@ -86,7 +101,28 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     .of({
       url: `${apiURL}config`,
       category: getConfigRequest
+    },
+    queryParams.code && {
+      url: `${apiURL}token`,
+      category: getTokenRequest,
+      method: 'POST',
+      send: {
+        code: queryParams.code,
+        redirectUrl: `${protocol}//${host}`
+      }
     })
+    .filter(v => !!v)
+
+  const tokenResponse$ = sources.HTTP.select(getTokenRequest)
+    .flatten()
+    .map(data => {
+      return {
+        type: tokenResponse,
+        token: data.body && data.body.response && data.body.response.access_token
+      }
+    })
+    // TODO: handle errors here
+    .filter(payload => !!payload.token)
 
   const session$ = xs
     .merge(
@@ -95,10 +131,12 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         .filter(token => !!token)
         .map(token => {
           return {
-            type: tokenRecieved,
+            type: loadSessionToken,
             token
           }
         }),
+
+      tokenResponse$,
 
       sources.HTTP.select(getConfigRequest)
         .flatten()
@@ -113,9 +151,19 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     .fold(onMessage, initialState)
 
   const cookie$ = xs
-    .of({
-      name: 'token'
-    })
+    .merge(
+      xs.of({
+        name: 'token'
+      }),
+      tokenResponse$
+        .map(payload => {
+          console.log('SET TOKEN OCOKIE', payload)
+          return {
+            name: 'token',
+            value: payload.token
+          }
+        })
+    )
 
   const beerSearchSinks = require('./beer-search')({
     DOM: sources.DOM,
@@ -136,10 +184,11 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
   const homeVdom$ = homeSinks.DOM
   const beerSearchVdom$ = beerSearchSinks.DOM
 
-  const vdom$ = xs.combine(
-    route$,
-    session$
-  )
+  const vdom$ = xs
+    .combine(
+      route$,
+      session$
+    )
     .filter(([route, session]) => session.config)
     .map(
       ([route]) => {
