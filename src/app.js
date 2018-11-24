@@ -108,7 +108,6 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       queryParams.code
         ? tokenCookie$.map(
           token => {
-            console.log('CHECK FOR TOKEN FIRST', token)
             // if we have a token from the cookie then don't fire off the request
             return token
               ? null
@@ -125,7 +124,6 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         )
         : xs.of()
     )
-    .flatten()
     .filter(v => !!v)
 
   const tokenResponse$ = sources.HTTP.select(getTokenRequest)
