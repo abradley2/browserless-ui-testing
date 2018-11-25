@@ -143,7 +143,7 @@ function model (state, message) {
   }
 
   // if this page isn't active don't update
-  if (!state.active) return null
+  if (!state.active) return state
 
   switch (message.type) {
     case messages.pageShown:

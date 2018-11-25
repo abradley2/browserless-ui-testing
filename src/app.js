@@ -88,15 +88,12 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     .map(data => {
       return data.body && data.body.response && data.body.response.access_token
     })
-    // TODO: handle errors here
     .filter(payload => !!payload.token)
 
-  // single stream that fires when the user is logged in either
-  // via resuming session via cookie or authentication
   const token$ = xs
     .merge(
       tokenCookie$.filter(token => !!token),
-      tokenResponse$.map(payload => payload.token)
+      tokenResponse$.map(payload => payload.token).filter(token => !!token)
     )
     .take(1)
 
