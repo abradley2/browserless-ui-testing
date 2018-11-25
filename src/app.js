@@ -23,39 +23,6 @@ const pathToRoute = memoizee(function pathToRoute (pathname) {
     }, null)
 })
 
-const configResponse = Symbol('configResponse')
-const loadSessionToken = Symbol('loadSessionToken')
-const tokenResponse = Symbol('tokenResponse')
-
-function setToken (state, message) {
-  const currentUser = state.user || {}
-  const updatedUser = Object.assign({}, currentUser, {
-    token: message.token
-  })
-  return Object.assign({}, state, {
-    user: updatedUser
-  })
-}
-
-function onMessage (state, message) {
-  switch (message.type) {
-    case tokenResponse:
-      return setToken(state, message)
-    case loadSessionToken:
-      return setToken(state, message)
-    case configResponse:
-      const redirectUrl = encodeURIComponent(message.redirectUrl)
-      const config = Object.assign({}, message.config, {
-        oauthURL: message.config.oauthURL + '&redirect_url=' + redirectUrl
-      })
-      return Object.assign({}, state, {
-        config
-      })
-    default:
-      return state
-  }
-}
-
 const app = ({ protocol, host, pathname, search, apiURL }) => function app (sources) {
   const getConfigRequest = Symbol('getConfigRequest')
   const getTokenRequest = Symbol('getTokenRequest')
@@ -66,11 +33,6 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       [k]: v
     })
   }, {})
-
-  const initialState = {
-    user: null,
-    config: null
-  }
 
   const route$ = sources.DOM.select('a[data-link]').events('click')
     .map(e => {
@@ -122,58 +84,52 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
               }
           }
         )
-        : xs.of()
+        : xs.empty()
     )
     .filter(v => !!v)
 
   const tokenResponse$ = sources.HTTP.select(getTokenRequest)
     .flatten()
     .map(data => {
-      return {
-        type: tokenResponse,
-        token: data.body && data.body.response && data.body.response.access_token
-      }
+      return data.body && data.body.response && data.body.response.access_token
     })
     // TODO: handle errors here
     .filter(payload => !!payload.token)
 
-  const session$ = xs
+  // single stream that fires when the user is logged in either
+  // via resuming session via cookie or authentication
+  const token$ = xs
     .merge(
-      route$,
-
-      tokenCookie$
-        .filter(token => !!token)
-        .map(token => {
-          return {
-            type: loadSessionToken,
-            token
-          }
-        }),
-
-      tokenResponse$,
-
-      sources.HTTP.select(getConfigRequest)
-        .flatten()
-        .map(response => {
-          return {
-            type: configResponse,
-            config: response.body,
-            redirectUrl: `${protocol}//${host}`
-          }
-        })
+      tokenCookie$.filter(token => !!token),
+      tokenResponse$.map(payload => payload.token)
     )
-    .fold(onMessage, initialState)
+    .take(1)
 
+  const config$ = sources.HTTP.select(getConfigRequest)
+    .flatten()
+    .map(response => {
+      const redirectURL = `${protocol}//${host}`
+      const config = response.body
+      const oauthURL = config.oauthURL + '&redirect_url=' + redirectURL
+      return Object.assign(
+        {},
+        response.body,
+        { oauthURL }
+      )
+    })
+    .take(1)
+
+  // used to attempt to get and set the cookie
   const cookie$ = xs
     .merge(
       xs.of({
         name: 'token'
       }),
       tokenResponse$
-        .map(payload => {
+        .map(token => {
           return {
             name: 'token',
-            value: payload.token,
+            value: token,
             expires: 60 * 60 * 24 // expire after a day
           }
         })
@@ -181,35 +137,37 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
 
   const beerSearchSinks = require('./beer-search')({
     DOM: sources.DOM,
-    session: session$,
     route: route$
       .map(route =>
         Object.assign({}, route, { active: route.name === beerSearchRoute }))
   })
 
-  const homeSinks = require('./home')({
+  const homeModel$ = require('./home').intent({
     DOM: sources.DOM,
-    session: session$,
+    HTTP: sources.HTTP,
     route: route$
       .map((route) =>
         Object.assign({}, route, { active: route.name === homeRoute }))
+  })
+  const homeSinks = require('./home').sinks({
+    model: homeModel$,
+    config: config$,
+    token: token$
   })
 
   const homeVdom$ = homeSinks.DOM
   const beerSearchVdom$ = beerSearchSinks.DOM
 
-  const vdom$ = xs
-    .combine(
-      route$,
-      session$
-    )
-    .filter(([route, session]) => session.config)
+  const vdom$ = route$
     .map(
-      ([route]) => {
+      (route) => {
+        console.log('ROUTE CHANGE: ', route)
         switch (route.name) {
           case homeRoute:
+            console.log('home route')
             return homeVdom$
           case beerSearchRoute:
+            console.log('beer route')
             return beerSearchVdom$
           default:
             return xs.of(
@@ -222,7 +180,14 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     )
     .flatten()
 
-  return { DOM: vdom$, HTTP: requests$, COOKIE: cookie$ }
+  return {
+    DOM: vdom$,
+    HTTP: xs.merge(
+      requests$,
+      homeSinks.HTTP
+    ),
+    COOKIE: cookie$
+  }
 }
 
 module.exports = {

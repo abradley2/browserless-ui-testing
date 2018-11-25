@@ -29,5 +29,5 @@ if (window.location.search.includes('code')) {
       document.title,
       '/'
     )
-  }, 500)
+  }, 250)
 }

@@ -34,21 +34,22 @@ const classes = StyleSheet.create({
   },
 
   unauthenticated: {
+    height: '100vh',
+    marginTop: 'calc(-16px - 48px)',
     display: 'flex',
+    alignItems: 'center',
     justifyContent: 'center'
   },
 
   unauthenticated__loginLink: {
-    fontSize: 24
+    fontSize: 24,
+    textDecoration: 'none',
+    padding: 16,
+    borderRadius: 3,
+    color: 'white',
+    backgroundColor: theme.beerBrown
   }
 })
-
-function onMessage (state, message) {
-  switch (message.type) {
-    default:
-      return state
-  }
-}
 
 function banner () {
   return h.div({
@@ -83,11 +84,16 @@ function banner () {
 
 function loggedIn (state) {
   return h.div([
-    'you are authenticated!'
+    h.a({
+      attrs: {
+        href: '/beersearch',
+        'data-link': true
+      }
+    }, 'go to beer search')
   ])
 }
 
-function unauthenticated (state, session) {
+function unauthenticated (state, config) {
   return h.div({
     attrs: {
       class: css(
@@ -100,25 +106,20 @@ function unauthenticated (state, session) {
         class: css(
           classes.unauthenticated__loginLink
         ),
-        href: session.config.oauthURL
+        href: config.oauthURL
       }
     }, 'Login via Untappd')
   ])
 }
 
-module.exports = function home (sources) {
-  const initialState = {
-
+function model (state, message) {
+  switch (message.type) {
+    default:
+      return state
   }
+}
 
-  const state$ = xs
-    .merge(
-      sources.route
-        .map(route => Object.assign({ type: 'routeChange' }, route))
-    )
-    .fold(onMessage, initialState)
-    .startWith(initialState)
-
+function view (sources) {
   const layout = (body) => h.div([
     banner(),
     h.div({
@@ -130,22 +131,41 @@ module.exports = function home (sources) {
     }, body)
   ])
 
-  const vdom$ = xs
+  return xs
     .combine(
-      state$,
-      sources.session
+      sources.model,
+      sources.config,
+      sources.token
     )
-    .map(([state, session]) => {
-      if (!session.config) {
-        return layout(h.div([]))
+    .map(([state, config, token]) => {
+      if (!config) {
+        return layout(h.div(['loading']))
       }
 
-      const body = session.user && session.user.token
+      const body = token
         ? loggedIn
         : unauthenticated
 
-      return layout(body(state, session))
+      return layout(body(state, config))
     })
+}
 
-  return { DOM: vdom$ }
+function intent ({ DOM, HTTP, route }) {
+  return xs
+    .empty()
+    .fold(model, null)
+}
+
+function sinks (sources) {
+  return {
+    DOM: view(sources),
+    HTTP: xs.empty()
+  }
+}
+
+module.exports = {
+  sinks,
+  intent,
+  model,
+  view
 }
