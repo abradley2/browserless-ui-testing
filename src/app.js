@@ -2,17 +2,12 @@ const xs = require('xstream').default
 const h = require('@cycle/dom')
 const p2re = require('path-to-regexp')
 const memoizee = require('memoizee')
-
-const home = p2re('/')
-const homeRoute = Symbol('homeRoute')
-
-const beerSearch = p2re('/beersearch')
-const beerSearchRoute = Symbol('beerSearchRoute')
+const routes = require('./routes')
 
 const pathToRoute = memoizee(function pathToRoute (pathname) {
   return [
-    [home, homeRoute],
-    [beerSearch, beerSearchRoute]
+    [p2re('/'), routes.homeRoute],
+    [p2re('/beersearch'), routes.beerSearchRoute]
   ]
     .reduce((found, [curRegExp, curRoute]) => {
       const result = curRegExp.exec(pathname)
@@ -46,7 +41,7 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       }
 
       return Object.assign(
-        { name: 'notfound' },
+        { name: routes.notFoundRoute },
         pathToRoute(e.target.getAttribute
           ? e.target.getAttribute('href')
           : e.target.href),
@@ -54,7 +49,7 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       )
     })
     .startWith(Object.assign(
-      { name: 'notfound' },
+      { name: routes.notFoundRoute },
       pathToRoute(pathname),
       search
     ))
@@ -119,7 +114,6 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     })
     .take(1)
 
-  // used to attempt to get and set the cookie
   const cookie$ = xs
     .merge(
       xs.of({
@@ -138,21 +132,18 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
   const beerSearchSinks = require('./beer-search')({
     DOM: sources.DOM,
     route: route$
-      .map(route =>
-        Object.assign({}, route, { active: route.name === beerSearchRoute }))
   })
 
   const homeModel$ = require('./home').intent({
     DOM: sources.DOM,
     HTTP: sources.HTTP,
     route: route$
-      .map((route) =>
-        Object.assign({}, route, { active: route.name === homeRoute }))
   })
   const homeSinks = require('./home').sinks({
     model: homeModel$,
     config: config$,
-    token: token$
+    token: token$,
+    route: route$
   })
 
   const homeVdom$ = homeSinks.DOM
@@ -160,22 +151,18 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
 
   const vdom$ = route$
     .map(
-      (route) => {
-        console.log('ROUTE CHANGE: ', route)
-        switch (route.name) {
-          case homeRoute:
-            console.log('home route')
-            return homeVdom$
-          case beerSearchRoute:
-            console.log('beer route')
-            return beerSearchVdom$
-          default:
-            return xs.of(
-              h.div([
-                h.h1('page not found')
-              ])
-            )
-        }
+      route => {
+        return xs.merge(
+          homeVdom$,
+
+          beerSearchVdom$.filter(() => route.name === routes.beerSearchRoute),
+
+          xs.of(
+            h.div([
+              h.h1('page not found')
+            ])
+          ).filter(() => route.name === routes.notFoundRoute)
+        )
       }
     )
     .flatten()
@@ -191,7 +178,5 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
 }
 
 module.exports = {
-  app,
-  homeRoute,
-  beerSearchRoute
+  app
 }
