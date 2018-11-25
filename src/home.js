@@ -114,8 +114,11 @@ function unauthenticated (state, config) {
   ])
 }
 
+const userProfileRequest = Symbol('userProfileRequest')
+
 const messages = {
-  pageShown: Symbol('pageShown')
+  pageShown: Symbol('pageShown'),
+  userProfileResponse: Symbol('userProfileResponse')
 }
 
 const initialState = {
@@ -125,6 +128,13 @@ const initialState = {
 function intent (sources) {
   return xs
     .merge(
+      sources.HTTP.select(userProfileRequest)
+        .map(response => {
+          return {
+            type: messages.userProfileResponse,
+            body: response.body
+          }
+        }),
       sources.route
         .map(route => {
           return {
@@ -201,8 +211,9 @@ function sinks (sources) {
       .filter(v => !!v.route)
       .map(({ token, config }) => {
         return {
-          url: `${config.apiURL}homeinit`,
+          url: `${config.apiURL}profile`,
           method: 'GET',
+          category: userProfileRequest,
           headers: {
             'Authorization': `Bearer ${token}`
           }

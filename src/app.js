@@ -106,7 +106,10 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       return Object.assign(
         {},
         response.body,
-        { oauthURL }
+        {
+          oauthURL,
+          apiURL
+        }
       )
     })
     .take(1)
