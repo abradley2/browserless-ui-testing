@@ -155,7 +155,11 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         return xs.merge(
           homeVdom$,
 
-          beerSearchVdom$.filter(() => route.name === routes.beerSearchRoute),
+          beerSearchVdom$.filter(() => {
+            const canChange = route.name === routes.beerSearchRoute
+            console.log(canChange)
+            return canChange
+          }),
 
           xs.of(
             h.div([

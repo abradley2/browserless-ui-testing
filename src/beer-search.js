@@ -3,6 +3,7 @@ const h = require('@cycle/dom')
 const textField = require('./components/text-field')
 
 function onMessage (state, message) {
+  console.log('handle message', state, message)
   switch (message.type) {
     case 'textInputValueChanged':
       return Object.assign({}, state, {

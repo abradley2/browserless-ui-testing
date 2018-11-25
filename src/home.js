@@ -86,6 +86,15 @@ function banner () {
 
 function loggedIn (state) {
   return h.div([
+    h.div([
+      h.input('.my-input', {
+        attrs: {
+          type: 'text',
+          value: state.text
+        }
+      }),
+      h.h1(state.text)
+    ]),
     h.a({
       attrs: {
         href: '/beersearch',
@@ -117,17 +126,26 @@ function unauthenticated (state, config) {
 const userProfileRequest = Symbol('userProfileRequest')
 
 const messages = {
+  editText: Symbol('editText'),
   pageShown: Symbol('pageShown'),
   userProfileResponse: Symbol('userProfileResponse')
 }
 
 const initialState = {
-  active: false
+  active: false,
+  text: 'test'
 }
 
 function intent (sources) {
   return xs
     .merge(
+      sources.DOM.select('.my-input').events('input')
+        .map(e => {
+          return {
+            type: messages.editText,
+            value: e.target.value
+          }
+        }),
       sources.HTTP.select(userProfileRequest)
         .map(response => {
           return {
@@ -156,6 +174,10 @@ function model (state, message) {
   if (!state.active) return state
 
   switch (message.type) {
+    case messages.editText:
+      return Object.assign({}, state, {
+        text: message.value
+      })
     case messages.pageShown:
       return initialState
     default:
