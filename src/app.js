@@ -129,8 +129,15 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         })
     )
 
-  const beerSearchSinks = require('./beer-search')({
+  const beerSearchModel$ = require('./beer-search').intent({
     DOM: sources.DOM,
+    HTTP: sources.HTTP,
+    route: route$
+  })
+  const beerSearchSinks = require('./beer-search').sinks({
+    model: beerSearchModel$,
+    config: config$,
+    token: token$,
     route: route$
   })
 
@@ -155,11 +162,7 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         return xs.merge(
           homeVdom$,
 
-          beerSearchVdom$.filter(() => {
-            const canChange = route.name === routes.beerSearchRoute
-            console.log(canChange)
-            return canChange
-          }),
+          beerSearchVdom$,
 
           xs.of(
             h.div([

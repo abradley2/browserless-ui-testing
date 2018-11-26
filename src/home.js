@@ -4,36 +4,9 @@ const h = require('@cycle/dom')
 const { StyleSheet, css } = require('aphrodite')
 const theme = require('./theme')
 const routes = require('./routes')
+const layout = require('./layout')
 
 const classes = StyleSheet.create({
-  container: {
-    marginTop: 48,
-    padding: 16
-  },
-  banner: {
-    backgroundColor: theme.beerBrown,
-    height: 48,
-    position: 'fixed',
-    left: 0,
-    right: 0,
-    top: 0,
-    display: 'flex',
-    alignItems: 'center',
-    padding: '0px 16px',
-    justifyContent: 'space-around',
-    color: 'white'
-  },
-  banner__title: {
-    lineHeight: '48px',
-    fontSize: 24,
-    fontWeight: 'bolder',
-    letterSpacing: 1.2
-  },
-  banner__beerIcon: {
-    fontSize: 32,
-    margin: '0px 8px',
-    transform: 'translateY(10%)'
-  },
 
   unauthenticated: {
     height: '100vh',
@@ -52,37 +25,6 @@ const classes = StyleSheet.create({
     backgroundColor: theme.beerBrown
   }
 })
-
-function banner () {
-  return h.div({
-    attrs: {
-      class: css(
-        classes.banner
-      )
-    }
-  }, [
-    h.span([
-      h.i({
-        attrs: {
-          class: `fas fa-beer ${
-            css(
-              classes.banner__beerIcon
-            )
-          }`
-        }
-      }),
-      h.span({
-        attrs: {
-          class: css(
-            classes.banner__title
-          )
-        }
-      }, [
-        'ToDrink'
-      ])
-    ])
-  ])
-}
 
 function loggedIn (state) {
   return h.div([
@@ -186,17 +128,6 @@ function model (state, message) {
 }
 
 function view (sources) {
-  const layout = (body) => h.div([
-    banner(),
-    h.div({
-      attrs: {
-        class: css(
-          classes.container
-        )
-      }
-    }, body)
-  ])
-
   return xs
     .combine(
       sources.route,
@@ -248,5 +179,6 @@ module.exports = {
   sinks,
   intent,
   model,
-  view
+  view,
+  messages
 }

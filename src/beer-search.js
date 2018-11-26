@@ -1,62 +1,56 @@
 const xs = require('xstream').default
 const h = require('@cycle/dom')
-const textField = require('./components/text-field')
+const routes = require('./routes')
+const layout = require('./layout')
 
-function onMessage (state, message) {
-  console.log('handle message', state, message)
+const messages = {
+  pageShown: Symbol('pageShown')
+}
+
+const initialState = {
+  active: false,
+  beerSearchQuery: ''
+}
+
+function model (state, message) {
+  if (message.type === messages.pageShown) {
+    return Object.assign({}, initialState, { active: message.active })
+  }
+
   switch (message.type) {
-    case 'textInputValueChanged':
-      return Object.assign({}, state, {
-        textFieldValue: message.value
-      })
     default:
       return state
   }
 }
 
-module.exports = function beerSearch (sources) {
-  const routeChange = Symbol('route-change')
-
-  const initialState = {
-    textFieldValue: 'hello there'
-  }
-
-  const state$ = xs
+function intent (sources) {
+  return xs
     .merge(
-      sources.route
-        .map(v => Object.assign({}, v, { routeChange })),
-      textField
-        .value(sources, '.my-text-field')
-        .map(value => ({
-          type: 'textInputValueChanged',
-          value
-        }))
-    )
-    .fold(onMessage, initialState)
-    .startWith(initialState)
-
-  const TextField = textField({
-    DOM: sources.DOM,
-    props: state$
-      .map(
-        state => ({
-          value: state.textFieldValue
+      sources.route.map(
+        route => ({
+          type: messages.pageShown,
+          active: route.name === routes.beerSearchRoute
         })
       )
-  }, '.my-text-field')
+    )
+    .fold(model, initialState)
+}
 
+function view (sources) {
   const vdom$ = xs
     .combine(
-      state$,
-      TextField.DOM
+      sources.route,
+      sources.model,
+      sources.token,
+      sources.config
     )
+    .filter(([route]) => route.name === routes.beerSearchRoute)
     .map(
-      ([state, textFieldVdom$]) =>
+      ([state, textFieldVdom$]) => layout(
         h.div([
           h.span('Hello from beer search'),
           h.div([
-            textFieldVdom$,
-            h.h1(state.textFieldValue)
+            h.h1(state.beerSearchQuery)
           ]),
           h.hr(),
           h.div([
@@ -68,7 +62,21 @@ module.exports = function beerSearch (sources) {
             }, 'I feel so broke up, i wanna go home')
           ])
         ])
+      )
     )
 
-  return { DOM: vdom$ }
+  return vdom$
+}
+
+function sinks (sources) {
+  return {
+    DOM: view(sources)
+  }
+}
+
+module.exports = {
+  view,
+  intent,
+  sinks,
+  messages
 }
