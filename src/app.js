@@ -95,7 +95,8 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       tokenCookie$.filter(token => !!token),
       tokenResponse$.map(payload => payload.token).filter(token => !!token)
     )
-    .take(1)
+    .startWith(null)
+    .take(2)
 
   const config$ = sources.HTTP.select(getConfigRequest)
     .flatten()
@@ -112,7 +113,8 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
         }
       )
     })
-    .take(1)
+    .startWith(null)
+    .take(2)
 
   const cookie$ = xs
     .merge(
@@ -124,7 +126,7 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
           return {
             name: 'token',
             value: token,
-            expires: 60 * 60 * 24 // expire after a day
+            expires: 1
           }
         })
     )
