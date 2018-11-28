@@ -88,12 +88,12 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     .map(data => {
       return data.body && data.body.response && data.body.response.access_token
     })
-    .filter(payload => !!payload.token)
+    .filter(token => !!token)
 
   const token$ = xs
     .merge(
       tokenCookie$.filter(token => !!token),
-      tokenResponse$.map(payload => payload.token).filter(token => !!token)
+      tokenResponse$.filter(token => !!token)
     )
     .startWith(null)
     .take(2)
