@@ -5,8 +5,32 @@ const { StyleSheet, css } = require('aphrodite')
 const theme = require('./theme')
 const routes = require('./routes')
 const layout = require('./layout')
+const textInput = require('./vdom/text-input')
 
 const classes = StyleSheet.create({
+
+  loggedIn: {
+    maxWidth: 768,
+    margin: 'auto'
+  },
+
+  loggedIn__searchbar: {
+    textAlign: 'center'
+  },
+
+  loggedIn__searchbar__content: {
+    display: 'inline-block'
+  },
+
+  loggedIn__searchbar__button: {
+    width: 32,
+    height: 32,
+    backgroundColor: theme.beerBrown,
+    color: 'white',
+    display: 'inline-block',
+    borderRadius: '3px',
+    lineHeight: '32px'
+  },
 
   unauthenticated: {
     height: '100vh',
@@ -26,23 +50,53 @@ const classes = StyleSheet.create({
   }
 })
 
+const beerSearchInput = '.beer-search'
+
 function loggedIn (state) {
-  return h.div([
-    h.div([
-      h.input('.my-input', {
-        attrs: {
-          type: 'text',
-          value: state.text
-        }
-      }),
-      h.h1(state.text)
-    ]),
-    h.a({
+  return h.div({
+    attrs: {
+      class: css(
+        classes.loggedIn
+      )
+    }
+  }, [
+    h.div({
       attrs: {
-        href: '/beersearch',
-        'data-link': true
+        class: css(
+          classes.loggedIn__searchbar
+        )
       }
-    }, 'go to beer search')
+    }, [
+      h.div({
+        attrs: {
+          class: css(
+            classes.loggedIn__searchbar__content
+          )
+        }
+      }, [
+        textInput(beerSearchInput, {
+          value: state.beerSearchText
+        }),
+        h.a({
+          attrs: {
+            class: css(
+              classes.loggedIn__searchbar__button
+            ),
+            href: '/beersearch',
+            'data-link': true
+          }
+        }, [
+          h.i({
+            attrs: {
+              class: 'fa fa-search ' + css(
+                classes.searchbar__button__icon
+              )
+            }
+          })
+        ])
+      ])
+    ]),
+    h.h1(state.beerSearchText)
   ])
 }
 
@@ -68,23 +122,24 @@ function unauthenticated (state, config) {
 const userProfileRequest = Symbol('userProfileRequest')
 
 const messages = {
-  editText: Symbol('editText'),
+  editBeerSearchText: Symbol('editBeerSearchText'),
   pageShown: Symbol('pageShown'),
   userProfileResponse: Symbol('userProfileResponse')
 }
 
 const initialState = {
   active: false,
-  text: 'test'
+  beerSearchText: 'test'
 }
 
 function intent (sources) {
   return xs
     .merge(
-      sources.DOM.select('.my-input').events('input')
+      sources.DOM.select(beerSearchInput).events('input')
         .map(e => {
+          console.log(e.target.value)
           return {
-            type: messages.editText,
+            type: messages.editBeerSearchText,
             value: e.target.value
           }
         }),
@@ -107,6 +162,7 @@ function intent (sources) {
 }
 
 function model (state, message) {
+  console.log(message)
   // set active or inactive on route transition
   if (message.type === messages.pageShown) {
     return Object.assign({}, initialState, { active: message.active })
@@ -116,9 +172,9 @@ function model (state, message) {
   if (!state.active) return state
 
   switch (message.type) {
-    case messages.editText:
+    case messages.editBeerSearchText:
       return Object.assign({}, state, {
-        text: message.value
+        beerSearchText: message.value
       })
     case messages.pageShown:
       return initialState

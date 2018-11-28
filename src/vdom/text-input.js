@@ -4,14 +4,18 @@ const theme = require('../theme')
 
 const classes = StyleSheet.create({
   textInput: {
-    border: `1px solid ${theme.beerBrown}`
+    border: `1px solid ${theme.beerBrown}`,
+    borderRadius: '3px',
+    height: 32,
+    fontSize: 16,
+    padding: '0px 4px'
   }
 })
 
 function textInput (sel, attrs) {
-  return h.input(sel, {
+  return h.input({
     attrs: Object.assign({}, {
-      class: css(
+      class: sel.substr(1) + ' ' + css(
         classes.textInput
       )
     }, attrs)
