@@ -29,30 +29,13 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
     })
   }, {})
 
-  const route$ = sources.DOM.select('a[data-link]').events('click')
-    .map(e => {
-      // if we are in the browser we need to run some side-effects to facilitate routing
-      if (window) {
-        e.preventDefault()
-        const stateChange = e.target.getAttribute('replace-state')
-          ? 'replaceState'
-          : 'pushState'
-        window.history[stateChange](null, document.title, e.target.getAttribute('href'))
-      }
-
+  const route$ = sources.HISTORY()
+    .map(location => {
       return Object.assign(
         { name: routes.notFoundRoute },
-        pathToRoute(e.target.getAttribute
-          ? e.target.getAttribute('href')
-          : e.target.href),
-        e.target.href.split('?')[1]
+        pathToRoute(`${location.pathname}${location.search}`)
       )
     })
-    .startWith(Object.assign(
-      { name: routes.notFoundRoute },
-      pathToRoute(pathname),
-      search
-    ))
 
   const tokenCookie$ = sources.COOKIE.select('token')
 
@@ -182,7 +165,8 @@ const app = ({ protocol, host, pathname, search, apiURL }) => function app (sour
       requests$,
       homeSinks.HTTP
     ),
-    COOKIE: cookie$
+    COOKIE: cookie$,
+    HISTORY: sources.DOM.select('a[data-link]').events('click')
   }
 }
 

@@ -2,6 +2,7 @@ const { run } = require('@cycle/run')
 const { makeDOMDriver } = require('@cycle/dom')
 const { makeHTTPDriver } = require('@cycle/http')
 const { makeCOOKIEDriver } = require('./drivers/cookie')
+const { makeHISTORYDriver } = require('./drivers/history')
 const { app } = require('./app')
 
 run(
@@ -17,7 +18,8 @@ run(
   {
     DOM: makeDOMDriver(document.getElementById('app')),
     HTTP: makeHTTPDriver(),
-    COOKIE: makeCOOKIEDriver()
+    COOKIE: makeCOOKIEDriver(),
+    HISTORY: makeHISTORYDriver()
   }
 )
 
